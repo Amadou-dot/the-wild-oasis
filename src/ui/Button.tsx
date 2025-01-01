@@ -49,14 +49,14 @@ const variations = {
 };
 
 interface ButtonProps {
-  size?: 'small' | 'medium' | 'large';
-  variation?: 'primary' | 'secondary' | 'danger';
+  $size?: 'small' | 'medium' | 'large';
+  $variation?: 'primary' | 'secondary' | 'danger';
 }
 
 const Button = styled.button<ButtonProps>(
-  ({ size = 'medium', variation = 'primary' }) => css`
-    ${sizes[size]};
-    ${variations[variation]};
+  ({ $size = 'medium', $variation = 'primary' }) => css`
+    ${sizes[$size]};
+    ${variations[$variation]};
     border: none;
     border-radius: var(---border-radius-sm);
     box-shadow: var(---shadow-sm);
