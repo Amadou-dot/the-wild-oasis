@@ -1,65 +1,47 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { SubmitErrorHandler, useForm } from 'react-hook-form';
-import { createCabin, editCabin } from '../../services/apiCabins';
-import { Cabin, CabinFormData } from '../../utils/interfaces';
 import FileInput from '../../ui/FileInput';
 import Textarea from '../../ui/Textarea';
 import FormRow from '../../ui/FormRow';
 import Button from '../../ui/Button';
-import toast from 'react-hot-toast';
 import Input from '../../ui/Input';
 import Form from '../../ui/Form';
-
+import { useAddCabin } from './useAddCabin';
+import { useUpdateCabin } from './useUpdateCabin';
+import { Database } from '../../utils/database.types';
+type Cabin = Database['public']["Tables"]['cabins']['Row'];
+type NewCabin = Database['public']['Tables']['cabins']['NewCabin'];
 function CreateCabinForm({ cabinEdit }: { cabinEdit?: Cabin }) {
+  const { isPending: isAdding, addCabin } = useAddCabin();
+  const { isPending: isUpdating, updateCabin } = useUpdateCabin(cabinEdit || null);
+  const editCabinDetails: Partial<Cabin> = cabinEdit
+    ? {
+        ...cabinEdit,
+        name: cabinEdit.name ?? undefined,
+        maxCapacity: cabinEdit.maxCapacity ?? undefined,
+        regularPrice: cabinEdit.regularPrice ?? undefined,
+        discount: cabinEdit.discount ?? undefined,
+        description: cabinEdit.description ?? undefined,
+        image: undefined,
+      }
+    : {};
+  const isBusy = isAdding || isUpdating;
   const isEditingSession = Boolean(cabinEdit);
-  const { id: editId, ...editCabinDetails } = cabinEdit || {};
-  const queryClient = useQueryClient();
-  const { register, handleSubmit, reset, formState } = useForm<CabinFormData>({
-    defaultValues: isEditingSession ? editCabinDetails : undefined,
-  });
-  const { errors } = formState;
-
-  const { mutate: addCabin, isPending: isAdding } = useMutation({
-    mutationFn: (data: CabinFormData) =>
-      createCabin({
-        ...data,
-        image: data.image.item(0) as string & File,
-      }),
-    onSuccess: () => {
-      toast.success('New Cabin added');
-      reset();
-    },
-    onError: (err: Error) => toast.error(err.message),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['cabins'] }),
+  
+  const { register, handleSubmit, reset, formState:{errors} } = useForm<Cabin>({
+    defaultValues: isEditingSession
+      ? { ...editCabinDetails, image: undefined }
+      : undefined,
   });
 
-  const { mutate: updateCabin, isPending: isUpdating } = useMutation({
-    mutationFn: (data: CabinFormData) =>
-      editCabin(
-        {
-          ...data,
-          image: (data.image.item(0) as string & File) || cabinEdit!.image,
-          id: editId!,
-          created_at: cabinEdit!.created_at,
-        },
-        editId!
-      ),
-    onSuccess: () => {
-      toast.success('Cabin updated');
-      reset();
-    },
-    onError: (err: Error) => toast.error(err.message),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['cabins'] }),
-  });
 
-  const onError: SubmitErrorHandler<CabinFormData> = errors => {
+  const onError: SubmitErrorHandler<Cabin> = errors => {
     console.log(errors);
   };
+  const onSubmit = (data: Cabin | NewCabin) =>
+    isEditingSession
+      ? updateCabin(data as Cabin)
+      : addCabin(data as NewCabin, { onSuccess: () => reset() });
 
-  const onSubmit = (data: CabinFormData) =>
-    isEditingSession ? updateCabin(data) : addCabin(data);
-
-  const isBusy = isAdding || isUpdating;
   return (
     <Form onSubmit={handleSubmit(onSubmit, onError)}>
       <FormRow label='Cabin Name' error={errors?.name?.message}>

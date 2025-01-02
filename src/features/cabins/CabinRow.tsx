@@ -1,11 +1,10 @@
 import styled from 'styled-components';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { deleteCabin } from '../../services/apiCabins';
-import { Cabin as iCabin } from '../../utils/interfaces';
-import toast from 'react-hot-toast';
 import { useState } from 'react';
 import CreateCabinForm from './CreateCabinForm';
-
+import { useDeleteCabin } from './useDeleteCabin';
+import { HiPencil, HiSquare2Stack, HiTrash } from 'react-icons/hi2';
+import { Database } from '../../utils/database.types';
+type Cabin = Database['public']['Tables']['cabins']['Row'];
 const TableRow = styled.div`
   display: grid;
   grid-template-columns: 0.6fr 1.8fr 2.2fr 1fr 1fr 1fr;
@@ -49,37 +48,36 @@ const Discount = styled.div`
   color: var(--color-green-700);
 `;
 
-export default function CabinRow({ cabin }: { cabin: iCabin }) {
+interface CabinRowProps {
+  cabin: Cabin;
+}
+
+export default function CabinRow({ cabin }: CabinRowProps) {
   const [showForm, setShowForm] = useState(false);
-  const queryClient = useQueryClient();
   const { id, image, name, maxCapacity, regularPrice, discount } = cabin;
-  const { isPending, mutate } = useMutation({
-    mutationFn: deleteCabin,
-    onSuccess: () => {
-      toast.success('Cabin deleted');
-      queryClient.invalidateQueries({ queryKey: ['cabins'] });
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-      throw new Error(error.message);
-    },
-  });
+  const { isPending, deleteCabin: mutate } = useDeleteCabin();
+
   return (
-   <>
-    <TableRow role='row'>
-      <Img src={image as unknown as string} />
-      <Cabin>{name}</Cabin>
-      <Capacity>{maxCapacity}</Capacity>
-      <Price>${regularPrice}</Price>
-      <Discount>{discount}%</Discount>
-      <div>
-        <button onClick={() => setShowForm(s => !s)} disabled={isPending}>EDIT</button>
-        <button disabled={isPending} onClick={() => mutate(id)}>
-          DELETE
-        </button>
-      </div>
-    </TableRow>
-      {showForm && <CreateCabinForm cabinEdit={cabin}/>}
-   </>
+    <>
+      <TableRow role='row'>
+        <Img src={image as unknown as string} />
+        <Cabin>{name}</Cabin>
+        <Capacity>{maxCapacity}</Capacity>
+        <Price>${regularPrice}</Price>
+        {discount ? <Discount>{discount}%</Discount> : <span>&mdash;</span>}
+        <div>
+          <button>
+            <HiSquare2Stack />
+          </button>
+          <button onClick={() => setShowForm(s => !s)} disabled={isPending}>
+            <HiPencil />
+          </button>
+          <button disabled={isPending} onClick={() => mutate(id)}>
+            <HiTrash />
+          </button>
+        </div>
+      </TableRow>
+      {showForm && <CreateCabinForm cabinEdit={cabin} />}
+    </>
   );
 }
