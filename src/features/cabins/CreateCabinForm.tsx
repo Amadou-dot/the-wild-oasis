@@ -1,18 +1,27 @@
 import { SubmitErrorHandler, useForm } from 'react-hook-form';
-import FileInput from '../../ui/FileInput';
-import Textarea from '../../ui/Textarea';
-import FormRow from '../../ui/FormRow';
 import Button from '../../ui/Button';
-import Input from '../../ui/Input';
+import FileInput from '../../ui/FileInput';
 import Form from '../../ui/Form';
+import FormRow from '../../ui/FormRow';
+import Input from '../../ui/Input';
+import Textarea from '../../ui/Textarea';
+import { Database } from '../../utils/database.types';
 import { useAddCabin } from './useAddCabin';
 import { useUpdateCabin } from './useUpdateCabin';
-import { Database } from '../../utils/database.types';
-type Cabin = Database['public']["Tables"]['cabins']['Row'];
+type Cabin = Database['public']['Tables']['cabins']['Row'];
 type NewCabin = Database['public']['Tables']['cabins']['NewCabin'];
-function CreateCabinForm({ cabinEdit }: { cabinEdit?: Cabin }) {
+
+function CreateCabinForm({
+  cabinEdit,
+  onCloseModal,
+}: {
+  cabinEdit?: Cabin;
+  onCloseModal?: () => void;
+}) {
   const { isPending: isAdding, addCabin } = useAddCabin();
-  const { isPending: isUpdating, updateCabin } = useUpdateCabin(cabinEdit || null);
+  const { isPending: isUpdating, updateCabin } = useUpdateCabin(
+    cabinEdit || null
+  );
   const editCabinDetails: Partial<Cabin> = cabinEdit
     ? {
         ...cabinEdit,
@@ -26,24 +35,38 @@ function CreateCabinForm({ cabinEdit }: { cabinEdit?: Cabin }) {
     : {};
   const isBusy = isAdding || isUpdating;
   const isEditingSession = Boolean(cabinEdit);
-  
-  const { register, handleSubmit, reset, formState:{errors} } = useForm<Cabin>({
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<Cabin>({
     defaultValues: isEditingSession
       ? { ...editCabinDetails, image: undefined }
       : undefined,
   });
-
+  const handleSuccess = () => {
+    reset();
+    onCloseModal?.();
+  };
 
   const onError: SubmitErrorHandler<Cabin> = errors => {
     console.log(errors);
   };
   const onSubmit = (data: Cabin | NewCabin) =>
     isEditingSession
-      ? updateCabin(data as Cabin)
-      : addCabin(data as NewCabin, { onSuccess: () => reset() });
+      ? updateCabin(data as Cabin, {
+          onSuccess: handleSuccess,
+        })
+      : addCabin(data as NewCabin, {
+          onSuccess: handleSuccess,
+        });
 
   return (
-    <Form onSubmit={handleSubmit(onSubmit, onError)}>
+    <Form
+      onSubmit={handleSubmit(onSubmit, onError)}
+      type={onCloseModal ? 'modal' : 'regular'}>
       <FormRow label='Cabin Name' error={errors?.name?.message}>
         <Input
           disabled={isBusy}
@@ -118,7 +141,11 @@ function CreateCabinForm({ cabinEdit }: { cabinEdit?: Cabin }) {
       </FormRow>
 
       <FormRow>
-        <Button $variation='secondary' type='reset'>
+        <Button
+          $variation='secondary'
+          type='reset'
+          onClick={() => onCloseModal?.() || reset()}
+          disabled={isBusy}>
           Cancel
         </Button>
         <Button disabled={isBusy} type='submit'>

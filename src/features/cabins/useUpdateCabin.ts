@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { UseMutateFunction, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { editCabin } from '../../services/apiCabins';
 import { Database } from '../../utils/database.types';
@@ -6,7 +6,7 @@ type Cabin = Database['public']['Tables']['cabins']['Row'];
 
 interface UseUpdateCabinReturn {
   isPending: boolean;
-  updateCabin: (data: Cabin) => void;
+  updateCabin: UseMutateFunction<Cabin, unknown, Cabin, unknown>;
 }
 
 export function useUpdateCabin(cabinEdit: Cabin | null): UseUpdateCabinReturn {
